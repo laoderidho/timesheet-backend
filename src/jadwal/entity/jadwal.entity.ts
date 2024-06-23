@@ -36,5 +36,4 @@ export class Jadwal {
 
     @ManyToOne(() => User, user => user.jadwal)
     user: User;
-
 }
