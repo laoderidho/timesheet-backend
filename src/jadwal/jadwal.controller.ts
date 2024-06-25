@@ -18,6 +18,11 @@ export class JadwalController{
         return this.jadwalService.getTotalPendapatan(token)
     }
 
+    @Get()
+    async getJadwal(@Headers ('authorization') token: string){
+        return this.jadwalService.getJadwal(token)
+    }
+
     @Get('total-durasi')
     async getTotalDurasi(@Headers ('authorization') token: string){
         return this.jadwalService.getTotalDurasi(token)

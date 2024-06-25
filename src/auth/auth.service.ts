@@ -1,6 +1,6 @@
 import { Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { User } from "./entities/user.entity";
 import { RegisterDto } from "./dto/register.dto";
 import * as bcrypt from 'bcryptjs';
@@ -18,21 +18,15 @@ export class AuthService {
 
     async register(register: RegisterDto){
         const passwordHash = await bcrypt.hash(register.password, 10);
-
         try {
-            const newUser = await this.userRepository.create({
+            const newUser = this.userRepository.create({
                 ...register,
                 password: passwordHash
             });
-            await this.userRepository.save(newUser);
-            return {
-                message: 'User Berhasil Dibuat'
-            };
+            return await this.userRepository.save(newUser);
         } catch (error) {
              if (error.code === 'ER_DUP_ENTRY') {
-                return {
-                    message: 'Email Sudah Terdaftar'
-                };
+                 throw new BadRequestException('Email sudah terdaftar');
             } else {
                 throw error; 
             }
@@ -45,17 +39,13 @@ export class AuthService {
         const user = await this.userRepository.findOne({ where: { email } });
 
         if(!user){
-            return {
-                message: 'Email dan kata sandi salah'
-            };
+            throw new UnauthorizedException('Email dan kata sandi salah')
         }
 
         const isPasswordMatch = await bcrypt.compare(password, user.password);
 
         if(!isPasswordMatch){
-            return {
-                message: 'Email dan kata sandi salah'
-            };
+            throw new UnauthorizedException('Email dan kata sandi salah')
         }
 
         const payload = { sub: user.id, email: user.email };

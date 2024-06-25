@@ -1,10 +1,12 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Jadwal } from "./entity/jadwal.entity";
 import { JwtService } from "@nestjs/jwt";
 import { JadwalDto } from "./dto/jadwal.dto";
 import { User } from "src/auth/entities/user.entity";
+import { InjectEntityManager } from "@nestjs/typeorm";
+import { EntityManager } from "typeorm";
 
 @Injectable()
 export class JadwalService {
@@ -13,7 +15,9 @@ export class JadwalService {
         private jadwalRepository: Repository<Jadwal>,
         private jwtServices: JwtService,
         @InjectRepository(User)
-        private userRepository: Repository<User>
+        private userRepository: Repository<User>,
+        @InjectEntityManager()
+        private entityManager: EntityManager
     ) {}
 
     async addJadwal(token: string, jadwal: JadwalDto ){
@@ -24,11 +28,21 @@ export class JadwalService {
             const jam_selesai = this.ParseTime(jadwal.jam_selesai);
 
 
+            if(jam_mulai > jam_selesai){
+                throw new BadRequestException('Jam mulai tidak boleh lebih kecil dari jam selesai')
+            }
+
             const getTime = (jam_selesai.getTime() - jam_mulai.getTime())/(1000 * 60);
             const jam = Math.floor(getTime / 60);
             const menit = getTime % 60;
-
+            
             const durasi = `${jam}:${menit}`;
+
+            console.log(durasi)
+
+            if(durasi < '9:0' && (jam_mulai.getHours() < 9 || (jam_selesai.getHours() >= 17 && jam_selesai.getMinutes() > 0))){
+                throw new BadRequestException('selesaikan jam kerja wajib, mulai dari Pukul 09:00 - 17:00')
+            }
 
             const newJadwal = this.jadwalRepository.create({
                 ...jadwal,
@@ -113,8 +127,7 @@ export class JadwalService {
                 }
             }
             return {
-                totalPendapatan: getTotalPendapatan,
-                totalLembur: getTotalLembur
+                totalSemua: getTotalPendapatan + getTotalLembur
             }
 
         } catch (error) {
@@ -167,12 +180,20 @@ export class JadwalService {
             const jam_mulai = this.ParseTime(jadwal.jam_mulai);
             const jam_selesai = this.ParseTime(jadwal.jam_selesai);
 
+            if(jam_mulai > jam_selesai){
+                throw new BadRequestException('Jam mulai tidak boleh lebih kecil dari jam selesai')
+            }
+
             const getTime = (jam_selesai.getTime() - jam_mulai.getTime())/(1000 * 60);
             const jam = Math.floor(getTime / 60);
             const menit = getTime % 60;
 
             const durasi = `${jam}:${menit}`;
 
+            if(durasi < '9:0' && (jam_mulai.getHours() < 9 || (jam_selesai.getHours() >= 17 && jam_selesai.getMinutes() > 0))){
+                throw new BadRequestException('selesaikan jam kerja wajib, mulai dari Pukul 09:00 - 17:00')
+            }
+            
             const data = this.jadwalRepository.findOne({where: {id: id}});
 
             if(authToken.sub !== (await data).userId){
@@ -209,6 +230,20 @@ export class JadwalService {
                 message: 'Jadwal berhasil dihapus'
             }
         } catch (error : any) {
+            throw error
+        }
+    }
+
+    async getJadwal(token: string){
+        try {
+            const authToken = this.jwtServices.verify(token);
+            const query = `select j.id, j.title, p.name as project_name, j.tanggal_mulai, j.tanggal_selesai, j.jam_mulai, j.jam_selesai, j.durasi
+                            from jadwal j join users u 
+                            on j.userId = u.id 
+                            join projects p on j.projectId = p.id
+                            where u.id = ${authToken.sub}`
+            return await this.entityManager.query(query)
+        } catch (error) {
             throw error
         }
     }
