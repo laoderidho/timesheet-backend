@@ -27,6 +27,17 @@ export class JadwalService {
             const jam_mulai = this.ParseTime(jadwal.jam_mulai);
             const jam_selesai = this.ParseTime(jadwal.jam_selesai);
 
+            const getNowDate: any = new Date().toISOString().split('T')[0];
+            
+            if(jadwal.tanggal_mulai < getNowDate){
+                throw new BadRequestException('anda tidak bisa set waktu yang sudah berlalu')
+            }
+
+            // console.log(jadwal.tanggal_mulai)
+
+            if(jadwal.tanggal_mulai > jadwal.tanggal_selesai){
+                throw new BadRequestException('Tanggal mulai tidak boleh lebih besar dari tanggal selesai')
+            }
 
             if(jam_mulai > jam_selesai){
                 throw new BadRequestException('Jam mulai tidak boleh lebih kecil dari jam selesai')
@@ -37,8 +48,6 @@ export class JadwalService {
             const menit = getTime % 60;
             
             const durasi = `${jam}:${menit}`;
-
-            console.log(durasi)
 
             if(durasi < '9:0' && (jam_mulai.getHours() < 9 || (jam_selesai.getHours() >= 17 && jam_selesai.getMinutes() > 0))){
                 throw new BadRequestException('selesaikan jam kerja wajib, mulai dari Pukul 09:00 - 17:00')
@@ -179,6 +188,17 @@ export class JadwalService {
 
             const jam_mulai = this.ParseTime(jadwal.jam_mulai);
             const jam_selesai = this.ParseTime(jadwal.jam_selesai);
+
+            const getNowDate: any = new Date().toISOString().split('T')[0];
+
+             if(jadwal.tanggal_mulai < getNowDate){
+                throw new BadRequestException('anda tidak bisa set waktu yang sudah berlalu')
+            }
+
+
+            if(jadwal.tanggal_mulai > jadwal.tanggal_selesai){
+                throw new BadRequestException('Tanggal mulai tidak boleh lebih besar dari tanggal selesai')
+            }
 
             if(jam_mulai > jam_selesai){
                 throw new BadRequestException('Jam mulai tidak boleh lebih kecil dari jam selesai')
