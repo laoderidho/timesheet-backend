@@ -37,4 +37,9 @@ export class JadwalController{
     async deleteJadwal(@Headers ('authorization') token: string, @Param('id') id: number){
         return this.jadwalService.deleteJadwal(token, id)
     }
+
+    @Get('detail/:id')
+    async getJadwalById(@Param('id') id: number){
+        return this.jadwalService.getJadwalById(id)
+    }
 }

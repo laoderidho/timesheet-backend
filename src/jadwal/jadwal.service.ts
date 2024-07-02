@@ -267,4 +267,12 @@ export class JadwalService {
             throw error
         }
     }
+
+    async getJadwalById(id: number){
+        try {
+            return await this.jadwalRepository.findOne({where: {id: id}})
+        } catch (error) {
+            throw error
+        }
+    }
 }
